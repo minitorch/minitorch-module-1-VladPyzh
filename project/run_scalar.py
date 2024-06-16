@@ -2,21 +2,29 @@
 Be sure you have minitorch installed in you Virtual Env.
 >>> pip install -Ue .
 """
+
 import random
 
 import minitorch
 
 
 class Network(minitorch.Module):
-    def __init__(self, hidden_layers):
+    def __init__(self, hidden_layers, hidden_size=16):
         super().__init__()
-        # TODO: Implement for Task 1.5.
-        raise NotImplementedError("Need to implement for Task 1.5")
+        for i in range(hidden_layers):
+            if i == 0:
+                setattr(self, f"layer{i + 1}", Linear(2, hidden_size))
+            elif i == hidden_layers - 1:
+                setattr(self, f"layer{i + 1}", Linear(hidden_size, 1))
+            else:
+                setattr(self, f"layer{i + 1}", Linear(hidden_size, hidden_size))
 
     def forward(self, x):
-        middle = [h.relu() for h in self.layer1.forward(x)]
-        end = [h.relu() for h in self.layer2.forward(middle)]
-        return self.layer3.forward(end)[0].sigmoid()
+        for module in self.modules()[:-1]:
+            x = [h.relu() for h in module.forward(x)]
+        last_module = self.modules()[-1]
+
+        return last_module.forward(x)[0].sigmoid()
 
 
 class Linear(minitorch.Module):
@@ -40,8 +48,13 @@ class Linear(minitorch.Module):
             )
 
     def forward(self, inputs):
-        # TODO: Implement for Task 1.5.
-        raise NotImplementedError("Need to implement for Task 1.5")
+        ans = [bias.value for bias in self.bias]
+
+        for i in range(len(inputs)):
+            for j, weight in enumerate(self.weights[i]):
+                ans[j] = ans[j] + inputs[i] * weight.value
+
+        return ans
 
 
 def default_log_fn(epoch, total_loss, correct, losses):
@@ -101,7 +114,7 @@ class ScalarTrain:
 
 if __name__ == "__main__":
     PTS = 50
-    HIDDEN = 2
+    HIDDEN = 5
     RATE = 0.5
-    data = minitorch.datasets["Simple"](PTS)
+    data = minitorch.datasets["Xor"](PTS)
     ScalarTrain(HIDDEN).train(data, RATE)
